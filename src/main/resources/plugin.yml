@@ -1,0 +1,25 @@
+name: FirstJoinVerification
+version: '${version}'
+main: cn.frostcraft.firstjoinverification.FirstJoinVerificationPlugin
+api-version: '26.2'
+author: FrostCraft
+website: https://www.orwoe.cn
+description: 首次进入服务器验证码验证插件，支持 Paper、Geyser 和 Floodgate。
+softdepend:
+  - Geyser-Spigot
+  - floodgate
+commands:
+  verify:
+    description: 输入验证码完成首次进入验证
+    usage: /verify <验证码>
+    aliases:
+      - 验证
+      - 验证码
+  verifyadmin:
+    description: 管理首次进入验证插件
+    usage: /verifyadmin reload
+    permission: firstjoinverification.admin
+permissions:
+  firstjoinverification.admin:
+    description: 允许重载首次进入验证插件配置
+    default: op
