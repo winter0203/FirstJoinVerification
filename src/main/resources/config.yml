@@ -1,0 +1,30 @@
+# 首次进入服务器验证码验证设置
+verification:
+  # 固定数字验证码。请使用引号，避免前导 0 被 YAML 当作数字处理。
+  code: "123456"
+  # 连续输错多少次后踢出玩家。0 表示不限制。
+  max-attempts: 5
+  kick-on-max-attempts: true
+  prompt-interval-seconds: 10
+
+freeze:
+  block-interactions: true
+  block-inventory: true
+  block-damage: true
+  block-item-pickup: true
+
+messages:
+  prefix: "&8[&b首次验证&8] &r"
+  prompt-java: "&e首次进入服务器，请在聊天栏输入 &b/verify <数字验证码>&e 完成验证。"
+  prompt-bedrock: "&e基岩版玩家：打开聊天栏，输入 &b/verify <数字验证码>&e 完成验证。"
+  usage: "&e用法：&b/verify <数字验证码>"
+  already-verified: "&a你已经完成验证，可以正常游玩。"
+  incorrect: "&c验证码错误，请重新输入。"
+  remaining-attempts: "&e剩余尝试次数：&c{remaining}"
+  success: "&a验证成功！现在可以正常游玩了。"
+  save-error: "&c验证状态保存失败，请联系管理员。"
+  kick-limit: "&c验证码错误次数过多，请重新进入服务器后再试。"
+  admin-reloaded: "&a配置文件已重新加载。"
+  admin-no-permission: "&c你没有权限执行此命令。"
+  admin-player-only: "&c该命令只能由玩家执行。"
+  admin-invalid-config: "&c配置无效：verification.code 必须是非空数字字符串。"
