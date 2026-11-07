@@ -1,0 +1,52 @@
+plugins {
+    id 'java'
+}
+
+group = 'cn.frostcraft'
+version = '1.0.0'
+
+repositories {
+    mavenCentral()
+
+    maven {
+        name = 'papermc'
+        url = 'https://repo.papermc.io/repository/maven-public/'
+    }
+
+    maven {
+        name = 'opencollab'
+        url = 'https://repo.opencollab.dev/main/'
+    }
+}
+
+dependencies {
+    // 按服务器版本 26.2 编译。
+    compileOnly 'io.papermc.paper:paper-api:26.2.build.+'
+
+    // 可选运行时依赖：服务器安装 Geyser/Floodgate 时用于识别基岩版玩家。
+    compileOnly 'org.geysermc.geyser:api:2.11.2-SNAPSHOT'
+    compileOnly 'org.geysermc.floodgate:api:2.2.5-SNAPSHOT'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 25
+}
+
+processResources {
+    filteringCharset = 'UTF-8'
+    filesMatching('plugin.yml') {
+        expand(version: project.version)
+    }
+}
+
+jar {
+    archiveBaseName = 'FirstJoinVerification'
+    archiveVersion = project.version
+}
