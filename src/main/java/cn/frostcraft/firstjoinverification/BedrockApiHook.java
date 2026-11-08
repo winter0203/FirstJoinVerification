@@ -1,23 +1,17 @@
 package cn.frostcraft.firstjoinverification;
 
 import org.geysermc.cumulus.form.CustomForm;
-import org.geysermc.floodgate.api.FloodgateApi;
 import org.geysermc.geyser.api.GeyserApi;
 
 import java.util.UUID;
-import java.util.function.Consumer;
 
 /**
- * Geyser/Floodgate 可选 API 适配。
- * Cumulus CustomForm 在基岩版客户端显示为原生表单输入窗口。
+ * Geyser API 适配层。
+ * 与 Floodgate API 分离，确保只安装 Geyser 时也能发送基岩版表单。
  */
 final class BedrockApiHook {
 
     private BedrockApiHook() {
-    }
-
-    static boolean isFloodgatePlayer(UUID uuid) {
-        return FloodgateApi.getInstance().isFloodgatePlayer(uuid);
     }
 
     static boolean isGeyserPlayer(UUID uuid) {
@@ -27,29 +21,18 @@ final class BedrockApiHook {
 
     static boolean sendVerificationForm(
             UUID uuid,
-            boolean floodgateAvailable,
             String title,
             String label,
             String placeholder,
-            Consumer<String> onSubmit,
+            java.util.function.Consumer<String> onSubmit,
             Runnable onClosed
     ) {
-        CustomForm form = CustomForm.builder()
-                .title(title)
-                .input(label, placeholder, "")
-                .closedOrInvalidResultHandler(onClosed)
-                .validResultHandler(response -> onSubmit.accept(response.asInput(0)))
-                .build();
-
-        // 如果没有安装 Floodgate，就不触碰 Floodgate API，直接使用 Geyser API。
-        if (floodgateAvailable) {
-            FloodgateApi floodgate = FloodgateApi.getInstance();
-            if (floodgate != null && floodgate.isFloodgatePlayer(uuid)) {
-                return floodgate.sendForm(uuid, form);
-            }
+        GeyserApi api = GeyserApi.api();
+        if (api == null || !api.isBedrockPlayer(uuid)) {
+            return false;
         }
 
-        GeyserApi geyser = GeyserApi.api();
-        return geyser != null && geyser.isBedrockPlayer(uuid) && geyser.sendForm(uuid, form);
+        CustomForm form = BedrockFormFactory.create(title, label, placeholder, onSubmit, onClosed);
+        return api.sendForm(uuid, form);
     }
 }
