@@ -214,27 +214,51 @@ public final class FirstJoinVerificationPlugin extends JavaPlugin implements Lis
             }
 
             try {
-                boolean floodgateAvailable = getServer().getPluginManager().getPlugin("floodgate") != null;
-                boolean sent = BedrockApiHook.sendVerificationForm(
-                        uuid,
-                        floodgateAvailable,
-                        getConfig().getString("messages.bedrock-form-title", "首次进入验证"),
-                        getConfig().getString("messages.bedrock-form-label", "请输入服务器提供的数字验证码"),
-                        getConfig().getString("messages.bedrock-form-placeholder", "在此输入数字"),
-                        input -> Bukkit.getScheduler().runTask(this, () -> {
+                java.util.function.Consumer<String> submitHandler = input ->
+                        Bukkit.getScheduler().runTask(this, () -> {
                             openBedrockForms.remove(uuid);
                             if (player.isOnline() && !isVerified(player)) {
                                 processVerificationInput(player, input);
                             }
-                        }),
-                        () -> Bukkit.getScheduler().runTask(this, () -> {
-                            openBedrockForms.remove(uuid);
-                            if (player.isOnline() && !isVerified(player)) {
-                                sendMessage(player, getConfig().getString("messages.form-closed",
-                                        "&e你尚未完成验证。验证窗口稍后会再次打开。"));
-                            }
-                        })
-                );
+                        });
+                Runnable closeHandler = () -> Bukkit.getScheduler().runTask(this, () -> {
+                    openBedrockForms.remove(uuid);
+                    if (player.isOnline() && !isVerified(player)) {
+                        sendMessage(player, getConfig().getString("messages.form-closed",
+                                "&e你尚未完成验证。验证窗口稍后会再次打开。"));
+                    }
+                });
+
+                boolean sent = false;
+                if (getServer().getPluginManager().getPlugin("floodgate") != null) {
+                    try {
+                        sent = FloodgateApiHook.sendVerificationForm(
+                                uuid,
+                                getConfig().getString("messages.bedrock-form-title", "首次进入验证"),
+                                getConfig().getString("messages.bedrock-form-label", "请输入服务器提供的数字验证码"),
+                                getConfig().getString("messages.bedrock-form-placeholder", "在此输入数字"),
+                                submitHandler,
+                                closeHandler
+                        );
+                    } catch (LinkageError | RuntimeException exception) {
+                        getLogger().warning("Floodgate 表单发送失败，将尝试 Geyser API：" + exception.getMessage());
+                    }
+                }
+
+                if (!sent) {
+                    try {
+                        sent = BedrockApiHook.sendVerificationForm(
+                                uuid,
+                                getConfig().getString("messages.bedrock-form-title", "首次进入验证"),
+                                getConfig().getString("messages.bedrock-form-label", "请输入服务器提供的数字验证码"),
+                                getConfig().getString("messages.bedrock-form-placeholder", "在此输入数字"),
+                                submitHandler,
+                                closeHandler
+                        );
+                    } catch (LinkageError | RuntimeException exception) {
+                        getLogger().warning("Geyser 表单发送失败，将回退到聊天栏输入：" + exception.getMessage());
+                    }
+                }
 
                 if (sent) {
                     openBedrockForms.add(uuid);
@@ -258,7 +282,7 @@ public final class FirstJoinVerificationPlugin extends JavaPlugin implements Lis
 
         if (getServer().getPluginManager().getPlugin("floodgate") != null) {
             try {
-                if (BedrockApiHook.isFloodgatePlayer(uuid)) {
+                if (FloodgateApiHook.isFloodgatePlayer(uuid)) {
                     return true;
                 }
             } catch (LinkageError | RuntimeException exception) {
