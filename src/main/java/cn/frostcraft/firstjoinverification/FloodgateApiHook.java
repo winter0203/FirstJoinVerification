@@ -1,6 +1,5 @@
 package cn.frostcraft.firstjoinverification;
 
-import org.geysermc.cumulus.form.CustomForm;
 import org.geysermc.floodgate.api.FloodgateApi;
 
 import java.util.UUID;
