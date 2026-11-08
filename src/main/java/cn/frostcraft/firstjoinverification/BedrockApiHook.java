@@ -27,6 +27,7 @@ final class BedrockApiHook {
 
     static boolean sendVerificationForm(
             UUID uuid,
+            boolean floodgateAvailable,
             String title,
             String label,
             String placeholder,
@@ -40,10 +41,12 @@ final class BedrockApiHook {
                 .validResultHandler(response -> onSubmit.accept(response.asInput(0)))
                 .build();
 
-        // 首选 Floodgate；Geyser API 也提供相同的 Cumulus 表单发送能力。
-        FloodgateApi floodgate = FloodgateApi.getInstance();
-        if (floodgate != null && floodgate.isFloodgatePlayer(uuid)) {
-            return floodgate.sendForm(uuid, form);
+        // 如果没有安装 Floodgate，就不触碰 Floodgate API，直接使用 Geyser API。
+        if (floodgateAvailable) {
+            FloodgateApi floodgate = FloodgateApi.getInstance();
+            if (floodgate != null && floodgate.isFloodgatePlayer(uuid)) {
+                return floodgate.sendForm(uuid, form);
+            }
         }
 
         GeyserApi geyser = GeyserApi.api();
