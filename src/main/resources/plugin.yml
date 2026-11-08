@@ -9,12 +9,6 @@ softdepend:
   - Geyser-Spigot
   - floodgate
 commands:
-  verify:
-    description: 兼容的验证码命令；玩家也可以直接在聊天栏输入数字
-    usage: /verify <数字验证码>
-    aliases:
-      - 验证
-      - 验证码
   verifyadmin:
     description: 管理首次进入验证插件
     usage: /verifyadmin reload
