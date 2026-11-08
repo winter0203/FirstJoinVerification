@@ -1,6 +1,6 @@
 # FirstJoinVerification
 
-Paper/Purpur 首次进入验证码插件，支持 Java 版聊天输入，以及 Geyser/Floodgate 基岩版原生弹窗输入。
+一款适用于 Paper/Purpur 服务器的首次进入验证码插件，支持 Java 版聊天栏数字验证与 Geyser/Floodgate 基岩版原生弹窗验证。验证成功后永久记录玩家 UUID，避免重复验证。
 
 ## 功能
 
@@ -104,4 +104,4 @@ messages:
 - Paper 的 `AsyncChatEvent` 用于拦截 Java 玩家发出的纯数字验证消息；事件可能异步触发，因此插件在回调中只提取并取消消息，实际验证处理切回服务器主线程。
 - 基岩版表单使用 Floodgate/Geyser 提供的 Cumulus `CustomForm`。表单提交和聊天栏输入共用同一套验证码校验、尝试次数和 UUID 持久化逻辑。
 - 具有管理员权限的其他插件若通过绕过 Bukkit 事件的底层方式移动玩家，不在本插件保证范围内。
-- **注意：本次修改尚未在目标服务器上进行实际构建及 Java/基岩版联机测试。**
+- **测试状态：** 已在实际服务器环境中完成测试，插件功能正常。
