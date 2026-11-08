@@ -214,8 +214,10 @@ public final class FirstJoinVerificationPlugin extends JavaPlugin implements Lis
             }
 
             try {
+                boolean floodgateAvailable = getServer().getPluginManager().getPlugin("floodgate") != null;
                 boolean sent = BedrockApiHook.sendVerificationForm(
                         uuid,
+                        floodgateAvailable,
                         getConfig().getString("messages.bedrock-form-title", "首次进入验证"),
                         getConfig().getString("messages.bedrock-form-label", "请输入服务器提供的数字验证码"),
                         getConfig().getString("messages.bedrock-form-placeholder", "在此输入数字"),
