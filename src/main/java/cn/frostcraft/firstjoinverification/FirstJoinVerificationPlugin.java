@@ -44,7 +44,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 首次进入服务器验证码验证插件。
- * Java 玩家直接在聊天栏输入纯数字；基岩版玩家通过 Geyser/Floodgate 表单输入。
+ * Java 玩家在聊天栏输入数字验证码；基岩版玩家通过 Geyser/Floodgate 表单输入。
  */
 public final class FirstJoinVerificationPlugin extends JavaPlugin implements Listener, CommandExecutor {
 
@@ -269,12 +269,12 @@ public final class FirstJoinVerificationPlugin extends JavaPlugin implements Lis
             }
 
             sendMessage(player, getConfig().getString("messages.prompt-bedrock-fallback",
-                    "&e无法打开验证窗口，请直接在聊天栏发送数字验证码。"));
+                    "&e无法打开验证窗口，请在聊天栏输入数字验证码。"));
             return;
         }
 
         sendMessage(player, getConfig().getString("messages.prompt-java",
-                "&e请直接在聊天栏发送服务器提供的数字验证码，无需输入命令。"));
+                "&e请在聊天栏输入服务器提供的数字验证码。"));
     }
 
     private boolean isBedrockPlayer(Player player) {
@@ -404,7 +404,7 @@ public final class FirstJoinVerificationPlugin extends JavaPlugin implements Lis
         }
     }
 
-    // 保留命令作为兼容入口；常规玩家无需再输入 /verify。
+    // 保留命令作为兼容入口。
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (command.getName().equalsIgnoreCase("verify")) {
@@ -415,7 +415,7 @@ public final class FirstJoinVerificationPlugin extends JavaPlugin implements Lis
 
             if (args.length != 1) {
                 sendMessage(player, getConfig().getString("messages.command-usage",
-                        "&e也可以直接在聊天栏发送纯数字验证码，无需输入命令。"));
+                        "&e请输入数字验证码。"));
                 return true;
             }
 
