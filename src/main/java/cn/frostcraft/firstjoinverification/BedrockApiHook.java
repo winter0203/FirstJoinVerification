@@ -1,6 +1,7 @@
 package cn.frostcraft.firstjoinverification;
 
 import org.geysermc.geyser.api.GeyserApi;
+import org.geysermc.cumulus.form.CustomForm;
 
 import java.util.UUID;
 
