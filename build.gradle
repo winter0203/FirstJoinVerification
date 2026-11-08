@@ -26,7 +26,8 @@ dependencies {
     // Geyser/Floodgate API，以及它们共享的基岩版表单库 Cumulus。
     compileOnly 'org.geysermc.geyser:api:2.11.2-SNAPSHOT'
     compileOnly 'org.geysermc.floodgate:api:2.2.5-SNAPSHOT'
-    compileOnly 'org.geysermc.cumulus:Cumulus:1.5'
+    // Cumulus 的实际 Maven artifactId 为小写 cumulus，1.1.2 为已发布版本。
+    compileOnly 'org.geysermc.cumulus:cumulus:1.1.2'
 }
 
 java {
