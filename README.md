@@ -12,7 +12,6 @@ Paper/Purpur 首次进入验证码插件，支持 Java 版聊天输入，以及 
 - 验证成功后按 UUID 保存到 `plugins/FirstJoinVerification/verified.yml`，之后不再重复验证。
 - 支持错误次数限制、错误后踢出、未验证期间的交互限制。
 - 管理员可执行 `/verifyadmin reload` 重载配置。
-- 原来的 `/verify <数字>` 命令仍保留为兼容输入方式。
 
 ## 环境要求
 
