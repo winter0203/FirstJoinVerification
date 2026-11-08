@@ -1,5 +1,7 @@
 package cn.frostcraft.firstjoinverification;
 
+import io.papermc.paper.event.player.AsyncChatEvent;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -38,15 +40,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 首次进入服务器验证码验证插件。
- * 玩家第一次输入正确验证码后，会以 UUID 形式写入 verified.yml，之后不再重复验证。
+ * Java 玩家直接在聊天栏输入纯数字；基岩版玩家通过 Geyser/Floodgate 表单输入。
  */
 public final class FirstJoinVerificationPlugin extends JavaPlugin implements Listener, CommandExecutor {
 
-    private final Set<UUID> verifiedPlayers = new HashSet<>();
+    // AsyncChatEvent 可能异步触发，因此此集合使用线程安全实现。
+    private final Set<UUID> verifiedPlayers = ConcurrentHashMap.newKeySet();
     private final Map<UUID, Integer> failedAttempts = new HashMap<>();
+    private final Set<UUID> openBedrockForms = new HashSet<>();
 
     private File verifiedFile;
     private String verificationCode;
@@ -94,7 +99,6 @@ public final class FirstJoinVerificationPlugin extends JavaPlugin implements Lis
         }
 
         getLogger().info("首次进入验证插件已启用。已记录验证玩家数量：" + verifiedPlayers.size());
-        getLogger().info("Geyser/Floodgate 识别功能为可选功能；无相关插件时 Java 版验证仍可使用。");
     }
 
     @Override
@@ -197,16 +201,56 @@ public final class FirstJoinVerificationPlugin extends JavaPlugin implements Lis
         return verifiedPlayers.contains(player.getUniqueId());
     }
 
+    /**
+     * Java 玩家直接输入数字；基岩版优先弹出原生 Bedrock CustomForm。
+     * 如果当前连接无法发送表单，则回退为聊天栏直接输入数字。
+     */
     private void sendVerificationPrompt(Player player) {
-        String key = isBedrockPlayer(player) ? "messages.prompt-bedrock" : "messages.prompt-java";
-        sendMessage(player, getConfig().getString(key,
-                "&e请在聊天栏输入 &b/verify <数字验证码>&e 完成验证。"));
+        UUID uuid = player.getUniqueId();
+
+        if (isBedrockPlayer(player)) {
+            if (openBedrockForms.contains(uuid)) {
+                return;
+            }
+
+            try {
+                boolean sent = BedrockApiHook.sendVerificationForm(
+                        uuid,
+                        getConfig().getString("messages.bedrock-form-title", "首次进入验证"),
+                        getConfig().getString("messages.bedrock-form-label", "请输入服务器提供的数字验证码"),
+                        getConfig().getString("messages.bedrock-form-placeholder", "在此输入数字"),
+                        input -> Bukkit.getScheduler().runTask(this, () -> {
+                            openBedrockForms.remove(uuid);
+                            if (player.isOnline() && !isVerified(player)) {
+                                processVerificationInput(player, input);
+                            }
+                        }),
+                        () -> Bukkit.getScheduler().runTask(this, () -> {
+                            openBedrockForms.remove(uuid);
+                            if (player.isOnline() && !isVerified(player)) {
+                                sendMessage(player, getConfig().getString("messages.form-closed",
+                                        "&e你尚未完成验证。验证窗口稍后会再次打开。"));
+                            }
+                        })
+                );
+
+                if (sent) {
+                    openBedrockForms.add(uuid);
+                    return;
+                }
+            } catch (LinkageError | RuntimeException exception) {
+                getLogger().warning("无法向基岩版玩家发送验证表单，将回退到聊天栏输入：" + exception.getMessage());
+            }
+
+            sendMessage(player, getConfig().getString("messages.prompt-bedrock-fallback",
+                    "&e无法打开验证窗口，请直接在聊天栏发送数字验证码。"));
+            return;
+        }
+
+        sendMessage(player, getConfig().getString("messages.prompt-java",
+                "&e请直接在聊天栏发送服务器提供的数字验证码，无需输入命令。"));
     }
 
-    /**
-     * 优先使用 Floodgate 判断，再使用 Geyser API。
-     * 两个 API 都是 compileOnly + softdepend；没有安装时不会影响插件主体功能。
-     */
     private boolean isBedrockPlayer(Player player) {
         UUID uuid = player.getUniqueId();
 
@@ -253,45 +297,56 @@ public final class FirstJoinVerificationPlugin extends JavaPlugin implements Lis
                 && Double.compare(from.getZ(), to.getZ()) == 0;
     }
 
-    // -------------------- 玩家验证命令 --------------------
+    // -------------------- 验证输入处理 --------------------
 
-    @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (command.getName().equalsIgnoreCase("verify")) {
-            return handleVerifyCommand(sender, args);
+    /**
+     * 未验证玩家发送纯数字聊天消息时，拦截该消息，避免验证码被广播到公共聊天。
+     * 事件可能异步触发；真正的验证与 Bukkit 操作统一切回主线程。
+     */
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    public void onChat(AsyncChatEvent event) {
+        UUID uuid = event.getPlayer().getUniqueId();
+        if (verifiedPlayers.contains(uuid)) {
+            return;
         }
-        if (command.getName().equalsIgnoreCase("verifyadmin")) {
-            return handleAdminCommand(sender, args);
+
+        String input = PlainTextComponentSerializer.plainText().serialize(event.message()).trim();
+        if (!input.matches("[0-9]+")) {
+            return;
         }
-        return true;
+
+        event.setCancelled(true);
+        Player player = event.getPlayer();
+        Bukkit.getScheduler().runTask(this, () -> {
+            if (player.isOnline() && !isVerified(player)) {
+                processVerificationInput(player, input);
+            }
+        });
     }
 
-    private boolean handleVerifyCommand(CommandSender sender, String[] args) {
-        if (!(sender instanceof Player player)) {
-            sender.sendMessage("该命令只能由玩家执行。");
-            return true;
-        }
-
+    private void processVerificationInput(Player player, String input) {
         if (isVerified(player)) {
-            sendMessage(player, getConfig().getString("messages.already-verified", "&a你已经完成验证。"));
-            return true;
+            sendMessage(player, getConfig().getString("messages.already-verified", "&a你已经完成验证，可以正常游玩。"));
+            return;
         }
 
-        if (args.length != 1) {
-            sendMessage(player, getConfig().getString("messages.usage", "&e用法：&b/verify <数字验证码>"));
-            return true;
+        if (input == null || !input.matches("[0-9]+")) {
+            sendMessage(player, getConfig().getString("messages.invalid-input", "&c请输入纯数字验证码。"));
+            return;
         }
 
-        if (verificationCode.equals(args[0])) {
-            if (!persistVerifiedPlayer(player.getUniqueId())) {
+        if (verificationCode.equals(input)) {
+            UUID uuid = player.getUniqueId();
+            if (!persistVerifiedPlayer(uuid)) {
                 sendMessage(player, getConfig().getString("messages.save-error", "&c验证状态保存失败，请联系管理员。"));
-                return true;
+                return;
             }
 
-            failedAttempts.remove(player.getUniqueId());
+            openBedrockForms.remove(uuid);
+            failedAttempts.remove(uuid);
             sendMessage(player, getConfig().getString("messages.success", "&a验证成功！现在可以正常游玩了。"));
             player.sendTitle(color("&a验证成功"), color("&f欢迎来到服务器！"), 5, 40, 10);
-            return true;
+            return;
         }
 
         int attempts = failedAttempts.merge(player.getUniqueId(), 1, Integer::sum);
@@ -309,7 +364,41 @@ public final class FirstJoinVerificationPlugin extends JavaPlugin implements Lis
                                 "&c验证码错误次数过多，请重新进入服务器后再试。")));
                     }
                 });
+                return;
             }
+        }
+
+        // 基岩版提交错误验证码后，立即重新打开表单；Java 版可直接继续在聊天栏输入。
+        if (isBedrockPlayer(player)) {
+            Bukkit.getScheduler().runTaskLater(this, () -> {
+                if (player.isOnline() && !isVerified(player)) {
+                    sendVerificationPrompt(player);
+                }
+            }, 1L);
+        }
+    }
+
+    // 保留命令作为兼容入口；常规玩家无需再输入 /verify。
+    @Override
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (command.getName().equalsIgnoreCase("verify")) {
+            if (!(sender instanceof Player player)) {
+                sender.sendMessage("该命令只能由玩家执行。");
+                return true;
+            }
+
+            if (args.length != 1) {
+                sendMessage(player, getConfig().getString("messages.command-usage",
+                        "&e也可以直接在聊天栏发送纯数字验证码，无需输入命令。"));
+                return true;
+            }
+
+            processVerificationInput(player, args[0]);
+            return true;
+        }
+
+        if (command.getName().equalsIgnoreCase("verifyadmin")) {
+            return handleAdminCommand(sender, args);
         }
         return true;
     }
@@ -347,7 +436,7 @@ public final class FirstJoinVerificationPlugin extends JavaPlugin implements Lis
             Bukkit.getScheduler().runTaskLater(this, () -> {
                 if (player.isOnline() && !isVerified(player)) {
                     sendVerificationPrompt(player);
-                    player.sendTitle(color("&6首次进入验证"), color("&f请在聊天栏输入验证码"), 5, 50, 10);
+                    player.sendTitle(color("&6首次进入验证"), color("&f请输入数字验证码"), 5, 50, 10);
                 }
             }, 20L);
         }
@@ -366,7 +455,9 @@ public final class FirstJoinVerificationPlugin extends JavaPlugin implements Lis
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-        failedAttempts.remove(event.getPlayer().getUniqueId());
+        UUID uuid = event.getPlayer().getUniqueId();
+        failedAttempts.remove(uuid);
+        openBedrockForms.remove(uuid);
     }
 
     // -------------------- 未验证期间的可选限制 --------------------
