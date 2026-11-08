@@ -23,9 +23,10 @@ dependencies {
     // 按服务器版本 26.2 编译。
     compileOnly 'io.papermc.paper:paper-api:26.2.build.+'
 
-    // 可选运行时依赖：服务器安装 Geyser/Floodgate 时用于识别基岩版玩家。
+    // Geyser/Floodgate API，以及它们共享的基岩版表单库 Cumulus。
     compileOnly 'org.geysermc.geyser:api:2.11.2-SNAPSHOT'
     compileOnly 'org.geysermc.floodgate:api:2.2.5-SNAPSHOT'
+    compileOnly 'org.geysermc.cumulus:Cumulus:1.5'
 }
 
 java {
