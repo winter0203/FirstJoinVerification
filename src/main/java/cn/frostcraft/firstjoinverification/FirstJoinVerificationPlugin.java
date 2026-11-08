@@ -81,12 +81,11 @@ public final class FirstJoinVerificationPlugin extends JavaPlugin implements Lis
 
         getServer().getPluginManager().registerEvents(this, this);
 
-        if (getCommand("verify") == null || getCommand("verifyadmin") == null) {
-            getLogger().severe("plugin.yml 中缺少 verify 或 verifyadmin 命令定义！");
+        if (getCommand("verifyadmin") == null) {
+            getLogger().severe("plugin.yml 中缺少 verifyadmin 命令定义！");
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
-        getCommand("verify").setExecutor(this);
         getCommand("verifyadmin").setExecutor(this);
 
         startPromptTask();
@@ -404,25 +403,8 @@ public final class FirstJoinVerificationPlugin extends JavaPlugin implements Lis
         }
     }
 
-    // 保留命令作为兼容入口。
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (command.getName().equalsIgnoreCase("verify")) {
-            if (!(sender instanceof Player player)) {
-                sender.sendMessage("该命令只能由玩家执行。");
-                return true;
-            }
-
-            if (args.length != 1) {
-                sendMessage(player, getConfig().getString("messages.command-usage",
-                        "&e请输入数字验证码。"));
-                return true;
-            }
-
-            processVerificationInput(player, args[0]);
-            return true;
-        }
-
         if (command.getName().equalsIgnoreCase("verifyadmin")) {
             return handleAdminCommand(sender, args);
         }
