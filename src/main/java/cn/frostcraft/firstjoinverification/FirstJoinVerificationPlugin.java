@@ -370,7 +370,11 @@ public final class FirstJoinVerificationPlugin extends JavaPlugin implements Lis
             openBedrockForms.remove(uuid);
             failedAttempts.remove(uuid);
             sendMessage(player, getConfig().getString("messages.success", "&a验证成功！现在可以正常游玩了。"));
-            player.sendTitle(color("&a验证成功"), color("&f欢迎来到服务器！"), 5, 40, 10);
+            player.sendTitle(
+                    color(getConfig().getString("messages.title-success", "&a验证成功")),
+                    color(getConfig().getString("messages.title-success-subtitle", "&f欢迎来到服务器！")),
+                    5, 40, 10
+            );
             return;
         }
 
@@ -431,7 +435,7 @@ public final class FirstJoinVerificationPlugin extends JavaPlugin implements Lis
             return true;
         }
 
-        sender.sendMessage(color("&e用法：/verifyadmin reload"));
+        sendMessage(sender, getConfig().getString("messages.command-usage", "&e用法：/verifyadmin reload"));
         return true;
     }
 
@@ -444,7 +448,11 @@ public final class FirstJoinVerificationPlugin extends JavaPlugin implements Lis
             Bukkit.getScheduler().runTaskLater(this, () -> {
                 if (player.isOnline() && !isVerified(player)) {
                     sendVerificationPrompt(player);
-                    player.sendTitle(color("&6首次进入验证"), color("&f请输入数字验证码"), 5, 50, 10);
+                    player.sendTitle(
+                            color(getConfig().getString("messages.title-join", "&6首次进入验证")),
+                            color(getConfig().getString("messages.title-join-subtitle", "&f请输入数字验证码")),
+                            5, 50, 10
+                    );
                 }
             }, 20L);
         }
