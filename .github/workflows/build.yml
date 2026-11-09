@@ -26,8 +26,10 @@ jobs:
       - name: Validate manual release tag
         if: github.event_name == 'workflow_dispatch'
         shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
         run: |
-          if [ -z "${{ inputs.tag }}" ]; then
+          if [ -z "$RELEASE_TAG" ]; then
             echo "::error::必须填写 Release Tag，例如 1.0.0"
             exit 1
           fi
