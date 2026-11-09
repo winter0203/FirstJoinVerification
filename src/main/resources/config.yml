@@ -34,9 +34,15 @@ messages:
   incorrect: "&c验证码错误，请重新输入。"
   remaining-attempts: "&e剩余尝试次数：&c{remaining}"
   success: "&a验证成功！现在可以正常游玩了。"
+  # 验证成功时显示的标题和副标题。
+  title-success: "&a验证成功"
+  title-success-subtitle: "&f欢迎来到服务器！"
+  # 玩家首次进入时显示的标题和副标题。
+  title-join: "&6首次进入验证"
+  title-join-subtitle: "&f请输入数字验证码"
   save-error: "&c验证状态保存失败，请联系管理员。"
   kick-limit: "&c验证码错误次数过多，请重新进入服务器后再试。"
-  command-usage: "&e请输入数字验证码。"
+  command-usage: "&e用法：/verifyadmin reload"
 
   admin-reloaded: "&a配置文件已重新加载。"
   admin-no-permission: "&c你没有权限执行此命令。"
